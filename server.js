@@ -117,7 +117,6 @@ class Server {
   eventsHandler() {
     // Event: open auction
     this.rpcServer.respond("openAuction", async (data) => {
-        console.log('openAuction **************')
       try {
         const { id, description, priceInit } = JSON.parse(
           data.toString("utf-8")
@@ -141,7 +140,7 @@ class Server {
       };
 
       // Announce open auction
-        const auctionTopic = Buffer.from("NEW_AUCTION");
+        const auctionTopic = Buffer.alloc(32).fill("NEW_AUCTION");
         await this.dht.announce(auctionTopic, Buffer.from(JSON.stringify(auctionNotification)));
 
         return Buffer.from(JSON.stringify({ success: true }), "utf-8");
@@ -160,7 +159,6 @@ class Server {
         const { id, bidder, amount } = JSON.parse(data.toString("utf-8"));
         const register = await this.bee.get(id);
 
-        console.log(register)
         if (!register) {
           return Buffer.from(
             JSON.stringify({ success: false, error: "Auction not found" }),

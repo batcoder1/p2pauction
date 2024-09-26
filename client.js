@@ -281,7 +281,7 @@ class Client {
   }
 
   async listenForAuctions()  {
-    const auctionTopic = Buffer.from("NEW_AUCTION");
+    const auctionTopic = Buffer.alloc(32).fill("NEW_AUCTION");
 
     const lookupStream = this.dht.lookup(auctionTopic);
 
