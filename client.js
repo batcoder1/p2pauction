@@ -115,7 +115,7 @@ class Client {
         }
       }
     } catch (error) {
-      console.error("Error during RPC operations:", error);
+      console.error("[Client] Error during RPC operations:", error);
     } finally {
       await this.rpc.destroy();
       await this.dht.destroy();
@@ -163,9 +163,9 @@ class Client {
         "openAuction",
         openAuctionPayload
       );
-      console.log("Open Auction Response:",JSON.parse(resp.toString("utf-8")));
+      console.log("[Client] Open Auction Response:",JSON.parse(resp.toString("utf-8")));
     } catch (error) {
-      console.error("Error opening auction, please try again", error);
+      console.error("[Client] Error opening auction, please try again", error);
     }
   }
 
@@ -192,7 +192,7 @@ class Client {
         JSON.parse(resp.toString("utf-8"))
       );
     } catch (error) {
-      console.error("Error placing bid, trying again in 2 seconds");
+      console.error("[Client] Error placing bid, trying again in 2 seconds");
       setTimeout(async () => {
         try {
           const resp = await this.connectAndRequest(
@@ -200,9 +200,9 @@ class Client {
             "closeAuction",
             placeBidPayload
           );
-          console.log("Close Auction Response:",JSON.parse(resp.toString("utf-8")));
+          console.log("[Client] Bid response:",JSON.parse(resp.toString("utf-8")));
         } catch (error) {
-          console.error("Error closing auction");
+          console.error("[Client] Error placing bid");
         }
       }, 2000);
     }
@@ -222,9 +222,9 @@ class Client {
         "closeAuction",
         closeAuctionPayload
       );
-      console.log("Close Auction Response:",JSON.parse(resp.toString("utf-8")));
+      console.log("[Client] Close Auction Response:",JSON.parse(resp.toString("utf-8")));
     } catch (error) {
-      console.error("Error closing auction, trying again in 2 seconds");
+      console.error("[Client]Error closing auction, trying again in 2 seconds");
       setTimeout(async () => {
         try {
           const resp = await this.connectAndRequest(
@@ -232,9 +232,9 @@ class Client {
             "closeAuction",
             closeAuctionPayload
           );
-          console.log("Close Auction Response:",JSON.parse(resp.toString("utf-8")));
+          console.log("[Client]Close Auction Response:",JSON.parse(resp.toString("utf-8")));
         } catch (error) {
-          console.error("Error closing auction");
+          console.error("[Client]Error closing auction");
         }
       }, 2000);
 
@@ -273,10 +273,10 @@ class Client {
           console.table([auctionDetails]);
         });
       } else {
-        console.log("Error fetching auctions:", response.error);
+        console.log("[Client] Error fetching auctions:", response.error);
       }
     } catch (error) {
-      console.error("Error fetching open auctions, please wait and try again", error);
+      console.error("[Client] Error fetching open auctions, please wait and try again", error);
     }
   }
 
@@ -286,31 +286,14 @@ class Client {
     const lookupStream = this.dht.lookup(auctionTopic);
 
     lookupStream.on("data", (info) => {
-        console.log("********** Auction notification ****************");
+      console.log("********** Auction notification ****************");
       console.log(info)
-        for (const peer of info.peers) {
-            console.log(`New auction notification from: ${b4a.toString(peer.publicKey, 'hex')}`);
-        }
+      for (const peer of info.peers) {
+        console.log(`[Client] New auction notification from: ${b4a.toString(peer.publicKey, 'hex')}`);
+      }
     });
-};
+  };
 
-
-
-  handleNotification(type, message) {
-    switch (type) {
-      case "auctionOpen":
-        console.log(`[Client] Notification: Auction Open - ${message}`);
-        break;
-      case "newBid":
-        console.log(`[Client] Notification: New Bid - ${message}`);
-        break;
-      case "auctionClosed":
-        console.log(`[Client] Notification: Auction Closed - ${message}`);
-        break;
-      default:
-        console.log(`[Client] Unknown Notification Type: ${type}`);
-    }
-  }
 
   async start() {
     try {
