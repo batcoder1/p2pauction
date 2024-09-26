@@ -12,7 +12,6 @@ const AuctionServer = require("./server");
 
 const BOOTSTRAP_PORT = 30002;
 const SEED_LENGTH = 32;
-const TOPIC = 'RPC_SERVER';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -127,7 +126,6 @@ class Client {
 
   async connectAndRequest(peerPublicKeyBuffer,action, payload){
     this.client = this.rpc.connect(peerPublicKeyBuffer); //Connect before request
-    this.listenForNotifications();
 
     return await this.rpc.request(
       peerPublicKeyBuffer,
@@ -167,7 +165,7 @@ class Client {
       );
       console.log("Open Auction Response:",JSON.parse(resp.toString("utf-8")));
     } catch (error) {
-      console.error("Error opening auction, please try again");
+      console.error("Error opening auction, please try again", error);
     }
   }
 
@@ -282,46 +280,21 @@ class Client {
     }
   }
 
-   async lookupPeers() {
-    const topic = crypto.createHash("sha256").update(TOPIC).digest();
-    const publicKeys = [];
+  async listenForAuctions()  {
+    const auctionTopic = Buffer.from("NEW_AUCTION");
 
-    // Lookup peers announcing under this topic
-    const lookupStream = this.dht.lookup(topic);
+    const lookupStream = this.dht.lookup(auctionTopic);
+
     lookupStream.on("data", (info) => {
-        console.log("********** peers ****************");
-        // Connect to each peer
-        for (const peer of  info.peers) {
-
-             try {
-                console.log(peer)
-                const conn = this.dht.connect(peer.publicKey)
-                console.log(`Connected to: ${b4a.toString(peer.publicKey, 'hex')}`);
-                publicKeys.push(peer.publicKey);
-
-            } catch (error) {
-                console.error(`Failed to connect to peer: ${error.message}`);
-
-            }
+        console.log("********** Auction notification ****************");
+      console.log(info)
+        for (const peer of info.peers) {
+            console.log(`New auction notification from: ${b4a.toString(peer.publicKey, 'hex')}`);
         }
     });
-    console.log("Open Auctions:");
+};
 
-    for (const publicKey of publicKeys) {
-        await this.listOpenAuctions(publicKey)
 
-    }
-  }
-
-  listenForNotifications() {
-    // listen for server notifications
-    this.client.on("notification", async (req) => {
-      console.log("notification received");
-      const { type, message } = JSON.parse(req.toString("utf-8"));
-      this.handleNotification(type, message);
-    });
-
-  }
 
   handleNotification(type, message) {
     switch (type) {
@@ -345,8 +318,7 @@ class Client {
       await this.initializeHyperbee();
       await this.initializeDHT();
       await this.initializeRPC();
-      await this.lookupPeers();
-
+      await this.listenForAuctions();
       await this.run();
     } catch (error) {
       console.error("[Server] Error starting client:", error);

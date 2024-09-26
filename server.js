@@ -9,7 +9,6 @@ const { validate, v4: uuidv4 } = require("uuid");
 
 const BOOTSTRAP_PORT = 30002;
 const SEED_LENGTH = 32;
-const TOPIC = 'RPC_SERVER';
 
 class Server {
   constructor(nodeId) {
@@ -99,7 +98,7 @@ class Server {
     console.log(`******************************************************************`);
 
     // Announce the server under the topic
-    const topic = crypto.createHash("sha256").update(TOPIC).digest();
+    const topic = Buffer.from("RPC_SERVER_TOPIC");
     this.dht.announce(topic, this.rpcServer._server._keyPair);
 
     // Announce periodically
@@ -125,18 +124,25 @@ class Server {
         );
         console.log(id, description, priceInit);
 
-        await this.bee.put(id, {
-          description,
-          priceInit,
-          bids: [],
-          createdAt: Date.now(),
-        });
+        const auctionDetails = {
+            description,
+            priceInit,
+            bids: [],
+            createdAt: Date.now(),
+        }
+        await this.bee.put(id, auctionDetails);
         console.log(`[Server] Auction open ${description}: ${id}`);
 
-        this.notifyAllClients(
-          `Auction open ${description}: ${id}`,
-          "auctionOpen"
-        );
+        const auctionNotification = {
+          id,
+          description: description,
+          startingPrice: priceInit,
+          createdAt: auctionDetails.createdAt
+      };
+
+      // Announce open auction
+        const auctionTopic = Buffer.from("NEW_AUCTION");
+        await this.dht.announce(auctionTopic, Buffer.from(JSON.stringify(auctionNotification)));
 
         return Buffer.from(JSON.stringify({ success: true }), "utf-8");
       } catch (error) {
@@ -185,10 +191,6 @@ class Server {
           `[Server] New bid: ${amount} by ${bidder} in auction ${id}`
         );
 
-        this.notifyAllClients(
-          `New bid in auction ${id}: ${bidder} bid ${amount} USDt`,
-          "newBid"
-        );
         return Buffer.from(JSON.stringify({ success: true }), "utf-8");
       } catch (error) {
         console.error("[Server] Error en placeBid:", error);
@@ -221,10 +223,7 @@ class Server {
           `[Server] Auction ${id} closed. Winner: ${highestBid.bidder} con ${highestBid.amount} USDt`
         );
 
-        this.notifyAllClients(
-          `Auction closed: ${id}. Winner: ${highestBid.bidder}`,
-          "auctionClosed"
-        );
+
         return Buffer.from(
           JSON.stringify({
             success: true,
@@ -263,15 +262,6 @@ class Server {
     });
   }
 
-  async notifyAllClients(message, type) {
-   /*  const notificationPayload = JSON.stringify({ type, message });
-    console.log("[Server] notify: ", notificationPayload);
-
-    for (const conn of this.connections) {
-      console.log(conn.id);
-      conn.event("notification", Buffer.from(notificationPayload));
-    } */
-  }
 
   async start() {
     try {
