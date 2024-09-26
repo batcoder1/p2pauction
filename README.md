@@ -13,7 +13,6 @@ This project requires the following Node.js dependencies:
 * hyperdht: Manages the DHT (Distributed Hash Table) network.
 * @hyperswarm/rpc: Handles RPC communications between nodes.
 * uuid: Generates unique identifiers for auctions.
-* sodium-native: Provides cryptographic utilities.
 
 ## Instalation
 
