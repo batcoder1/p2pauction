@@ -79,16 +79,37 @@ case 0:
     process.exit(0);
 ```
 
-### Notifications
+### Notification
 
-The server can notify all connected clients using the notifyAllClients method. This function broadcasts notifications about auction-related events (e.g., new bids, auction closure) to all clients:
+The server notify when a new auction is created through the topic NEW_ACTION
+
+Server
 ```bash
-async notifyAllClients(type, message) {
-    const notificationPayload = JSON.stringify({ type, message });
-    for (const conn of this.connections) {
-        conn.write(Buffer.from(notificationPayload));
-    }
-}
+  const auctionNotification = {
+    id,
+    description: description,
+    startingPrice: priceInit,
+    createdAt: auctionDetails.createdAt
+  };
+
+  const auctionTopic = Buffer.alloc(32).fill("NEW_ACTION");
+  await this.dht.announce(auctionTopic, Buffer.from(JSON.stringify(auctionNotification)));
+```
+Client
+```bash
+  async listenForAuctions()  {
+    const auctionTopic =Buffer.alloc(32).fill("NEW_AUCTION");
+
+    const lookupStream = this.dht.lookup(auctionTopic);
+
+    lookupStream.on("data", (info) => {
+      console.log("********** Auction notification ****************");
+      console.log(info)
+      for (const peer of info.peers) {
+        console.log(`[Client] New auction notification from: ${b4a.toString(peer.publicKey, 'hex')}`);
+      }
+    });
+  };
 ```
 
 ### Next Steps
@@ -97,3 +118,6 @@ async notifyAllClients(type, message) {
 * Implement a client authentication system to verify user identities before allowing them to interact with the server.
 * Add a graphical user interface (GUI) to enhance the user experience.
 
+### Problems
+
+I have not been able to send notifications using the topic, so I have developed another method for users to consult the open auctions list.
